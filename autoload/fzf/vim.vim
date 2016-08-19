@@ -379,6 +379,16 @@ function! fzf#vim#locate(query, ...)
 endfunction
 
 " ------------------------------------------------------------------
+" Mru
+" ------------------------------------------------------------------
+function! fzf#vim#mru(...)
+  return s:fzf('mru', fzf#vim#wrap({
+  \ 'source':  'sed "1d" $HOME/.cache/neomru/file',
+  \ 'options': '-m --prompt "MRU> "'
+  \}), a:000)
+endfunction
+
+" ------------------------------------------------------------------
 " History[:/]
 " ------------------------------------------------------------------
 function! s:all_files()

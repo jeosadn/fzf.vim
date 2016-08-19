@@ -65,6 +65,7 @@ Commands
 | `Marks`           | Marks                                                                   |
 | `Windows`         | Windows                                                                 |
 | `Locate PATTERN`  | `locate` command output                                                 |
+| `MRU `            |  Search MRU                                                             |
 | `History`         | `v:oldfiles` and open buffers                                           |
 | `History:`        | Command history                                                         |
 | `History/`        | Search history                                                          |
