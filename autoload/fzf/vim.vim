@@ -382,7 +382,7 @@ endfunction
 " Mru
 " ------------------------------------------------------------------
 function! fzf#vim#mru(...)
-  :let mypath =$HOME.'/.cache/neomru/file'
+  :let mypath =$HOME.'/.vim_mru_files'
   return s:fzf('mru', fzf#vim#wrap({
   \ 'source':  readfile(mypath),
   \ 'options': '-m --prompt "MRU> "'
