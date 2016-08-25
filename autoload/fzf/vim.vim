@@ -382,9 +382,13 @@ endfunction
 " Mru
 " ------------------------------------------------------------------
 function! fzf#vim#mru(...)
-  :let mypath =$HOME.'/.vim_mru_files'
+  let mypath =$HOME.'/.vim_mru_files'
+  let mymru = readfile(mypath)
+  let mylogs = system('find $RUN_HOME $DUMP_HOME -type f')
+  let mylogslist = split(mylogs)
+  let myf = mylogslist + mymru
   return s:fzf('mru', fzf#vim#wrap({
-  \ 'source':  readfile(mypath),
+  \ 'source':  myf,
   \ 'options': '-m --prompt "MRU> "'
   \}), a:000)
 endfunction
