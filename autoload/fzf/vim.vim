@@ -384,9 +384,10 @@ endfunction
 function! fzf#vim#mru(...)
   let mypath =$HOME.'/.vim_mru_files'
   let mymru = readfile(mypath)
-  let mylogs = system('find $RUN_HOME $DUMP_HOME -type f')
-  let mylogslist = split(mylogs)
-  let myf = mylogslist + mymru
+  "let mylogs = system('find $RUN_HOME $DUMP_HOME -type f | grep irun.log$')
+  "let mylogslist = split(mylogs)
+  "let myf = mylogslist + mymru
+  let myf = mymru
   return s:fzf('mru', fzf#vim#wrap({
   \ 'source':  myf,
   \ 'options': '-m --prompt "MRU> "'
