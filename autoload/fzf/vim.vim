@@ -82,11 +82,6 @@ function! fzf#vim#wrap(opts)
   return fzf#wrap(a:opts)
 endfunction
 
-" Deprecated
-function! fzf#vim#layout(...)
-  return (a:0 && a:1) ? {} : copy(get(g:, 'fzf_layout', g:fzf#vim#default_layout))
-endfunction
-
 function! s:wrap(name, opts, bang)
   " fzf#wrap does not append --expect if sink or sink* is found
   let opts = copy(a:opts)
@@ -219,7 +214,7 @@ function! s:warn(message)
   return 0
 endfunction
 
-function! s:uniq(list)
+function! fzf#vim#_uniq(list)
   let visited = {}
   let ret = []
   for l in a:list
@@ -361,7 +356,7 @@ endfunction
 " ------------------------------------------------------------------
 function! fzf#vim#colors(...)
   return s:fzf('colors', {
-  \ 'source':  s:uniq(map(split(globpath(&rtp, "colors/*.vim"), "\n"),
+  \ 'source':  fzf#vim#_uniq(map(split(globpath(&rtp, "colors/*.vim"), "\n"),
   \               "substitute(fnamemodify(v:val, ':t'), '\\..\\{-}$', '', '')")),
   \ 'sink':    'colo',
   \ 'options': '+m --prompt="Colors> "'
@@ -463,14 +458,7 @@ endfunction
 " GFiles[?]
 " ------------------------------------------------------------------
 
-" helper function to get the git root. Uses vim-fugitive if available for EXTRA SPEED!
 function! s:get_git_root()
-  if exists('*fugitive#repo')
-    try
-      return fugitive#repo().tree()
-    catch
-    endtry
-  endif
   let root = split(system('git rev-parse --show-toplevel'), '\n')[0]
   return v:shell_error ? '' : root
 endfunction
@@ -673,7 +661,7 @@ function! s:btags_source(tag_cmds)
 
   for cmd in a:tag_cmds
     let lines = split(system(cmd), "\n")
-    if !v:shell_error
+    if !v:shell_error && len(lines)
       break
     endif
   endfor
@@ -772,6 +760,9 @@ function! s:tags_sink(lines)
 endfunction
 
 function! fzf#vim#tags(query, ...)
+  if !executable('perl')
+    return s:warn('Tags command requires perl')
+  endif
   if empty(tagfiles())
     call inputsave()
     echohl WarningMsg
@@ -937,8 +928,11 @@ function! s:helptag_sink(line)
 endfunction
 
 function! fzf#vim#helptags(...)
-  let sorted = sort(split(globpath(&runtimepath, '**/doc/tags'), '\n'))
-  let tags = exists('*uniq') ? uniq(sorted) : s:uniq(sorted)
+  if !executable('perl')
+    return s:warn('Helptags command requires perl')
+  endif
+  let sorted = sort(split(globpath(&runtimepath, 'doc/tags'), '\n'))
+  let tags = exists('*uniq') ? uniq(sorted) : fzf#vim#_uniq(sorted)
 
   return s:fzf('helptags', {
   \ 'source':  "grep -H '.*' ".join(map(tags, 'shellescape(v:val)')).
@@ -1004,7 +998,7 @@ function! s:commits_sink(lines)
   let cmd = get(extend({'ctrl-d': ''}, get(g:, 'fzf_action', s:default_action)), a:lines[0], 'e')
   let buf = bufnr('')
   for idx in range(1, len(a:lines) - 1)
-    let sha = matchstr(a:lines[idx], '[0-9a-f]\{7}')
+    let sha = matchstr(a:lines[idx], '[0-9a-f]\{7,9}')
     if !empty(sha)
       if empty(cmd)
         if idx > 1
@@ -1110,13 +1104,12 @@ function! fzf#vim#maps(mode, ...)
   let list = []
   let curr = ''
   for line in split(cout, "\n")
-    let src = matchstr(line, 'Last set from \zs.*')
-    if empty(src)
-      let curr = line[3:]
-    else
-      let src = '  '.join(reverse(reverse(split(src, '/'))[0:2]), '/')
+    if line =~ "^\t"
+      let src = '  '.join(reverse(reverse(split(split(line)[-1], '/'))[0:2]), '/')
       call add(list, printf('%s %s', curr, s:green(src, 'Comment')))
       let curr = ''
+    else
+      let curr = line[3:]
     endif
   endfor
   if !empty(curr)
@@ -1188,16 +1181,20 @@ endfunction
 
 function! fzf#vim#complete(...)
   if a:0 == 0
-    let s:opts = g:fzf#vim#default_layout
+    let s:opts = fzf#wrap()
   elseif type(a:1) == s:TYPE.dict
-    if has_key(a:1, 'sink') || has_key(a:1, 'sink*')
-      echoerr 'sink not allowed'
-      return ''
-    endif
     let s:opts = copy(a:1)
+  elseif type(a:1) == s:TYPE.string
+    let s:opts = extend({'source': a:1}, get(a:000, 1, fzf#wrap()))
   else
-    let s:opts = extend({'source': a:1}, g:fzf#vim#default_layout)
+    echoerr 'Invalid argument: '.string(a:000)
+    return ''
   endif
+  for s in ['sink', 'sink*']
+    if has_key(s:opts, s)
+      call remove(s:opts, s)
+    endif
+  endfor
 
   let eol = col('$')
   let ve = &ve
@@ -1222,6 +1219,10 @@ function! fzf#vim#complete(...)
   if has_key(s:opts, 'extra_options')
     let s:opts.options =
       \ join(filter([get(s:opts, 'options', ''), remove(s:opts, 'extra_options')], '!empty(v:val)'))
+  endif
+  if has_key(s:opts, 'options')
+    " FIXME: fzf currently doesn't have --no-expect option
+    let s:opts.options = substitute(s:opts.options, '--expect=[^ ]*', '', 'g')
   endif
 
   call feedkeys("\<Plug>(-fzf-complete-trigger)")
