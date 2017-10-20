@@ -433,6 +433,7 @@ function! fzf#vim#mru(...)
     let mypath =$HOME.'/.vim_mru_files'
   else
     let mypath =$HOME.'/_vim_mru_files'
+  endif
   let mymru = readfile(mypath)
   "let mylogs = system('find $RUN_HOME $DUMP_HOME -type f | grep irun.log$')
   "let mylogslist = split(mylogs)
