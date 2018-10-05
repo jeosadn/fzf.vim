@@ -465,7 +465,7 @@ function! fzf#vim#mru(...)
   "let mylogslist = split(mylogs)
   "let myf = mylogslist + mymru
   let myf = mymru
-  return s:fzf('mru', fzf#vim#wrap({
+  return s:fzf('mru', fzf#wrap({
   \ 'source':  myf,
   \ 'options': '-m --prompt "MRU> "'
   \}), a:000)
